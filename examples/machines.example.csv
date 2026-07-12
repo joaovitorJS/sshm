@@ -1,0 +1,4 @@
+name,host,user,port,key,tags,note
+prod-web1,10.0.1.10,deploy,22,,prod;web,Servidor web principal
+prod-db1,10.0.1.20,admin,,,prod;db,
+aws-ec2-1,54.10.20.30,ec2-user,,~/.ssh/keys/aws-prod.pem,aws;ec2,Servidor AWS

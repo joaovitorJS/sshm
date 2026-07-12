@@ -2,13 +2,15 @@
 """
 sshm - Seletor interativo de máquinas SSH
 Uso:
-    sshm              # abre o menu interativo (buscar + selecionar + conectar)
-    sshm add          # cadastra uma nova máquina no arquivo custom
-    sshm list         # lista todas as máquinas (ssh config + custom)
-    sshm remove NOME  # remove uma máquina do arquivo custom
-    sshm edit         # abre o arquivo custom no seu editor ($EDITOR)
+    sshm                    # abre o menu interativo (buscar + selecionar + conectar)
+    sshm add                # cadastra uma nova máquina no arquivo custom
+    sshm import ARQUIVO.csv # importa máquinas em lote a partir de um CSV
+    sshm list               # lista todas as máquinas (ssh config + custom)
+    sshm remove NOME        # remove uma máquina do arquivo custom
+    sshm edit                # abre o arquivo custom no seu editor ($EDITOR)
 """
 
+import csv
 import curses
 import json
 import os
@@ -319,6 +321,76 @@ def cmd_add():
     print(f"Máquina '{name}' adicionada.")
 
 
+def cmd_import(csv_path, update=False):
+    path = Path(csv_path).expanduser()
+    if not path.exists():
+        print(f"Arquivo não encontrado: {path}")
+        sys.exit(1)
+
+    ensure_config_dir()
+    custom = load_custom()
+    by_name = {m.name: m for m in custom}
+
+    added, updated, skipped, errors = 0, 0, 0, 0
+
+    with open(path, newline="", encoding="utf-8-sig") as f:
+        reader = csv.DictReader(f)
+        if reader.fieldnames is None:
+            print("CSV vazio ou sem cabeçalho. Colunas esperadas: name,host,user,port,key,tags,note")
+            sys.exit(1)
+
+        # normaliza nomes de coluna (case-insensitive, espaços nas pontas)
+        normalized_fields = {fn: fn.strip().lower() for fn in reader.fieldnames}
+        known = {"name", "host", "user", "port", "key", "tags", "note"}
+        unknown = set(normalized_fields.values()) - known
+        if unknown:
+            print(f"Aviso: colunas desconhecidas ignoradas: {', '.join(sorted(unknown))}")
+
+        for row_num, raw_row in enumerate(reader, start=2):  # linha 1 é o cabeçalho
+            row = {normalized_fields[k]: (v or "").strip() for k, v in raw_row.items() if k in normalized_fields}
+
+            name = row.get("name", "")
+            host = row.get("host", "")
+            if not name:
+                print(f"Linha {row_num}: sem 'name', ignorada.")
+                errors += 1
+                continue
+            if not host:
+                print(f"Linha {row_num} ('{name}'): sem 'host', ignorada.")
+                errors += 1
+                continue
+
+            tags_raw = row.get("tags", "")
+            tag_list = [t.strip() for t in re.split(r"[;|]", tags_raw) if t.strip()]
+
+            machine = Machine(
+                name=name,
+                host=host,
+                user=row.get("user", ""),
+                port=row.get("port", ""),
+                key=row.get("key", ""),
+                tags=tag_list,
+                note=row.get("note", ""),
+            )
+
+            if name in by_name:
+                if update:
+                    by_name[name] = machine
+                    updated += 1
+                else:
+                    print(f"Linha {row_num}: '{name}' já existe, ignorada (use --update para sobrescrever).")
+                    skipped += 1
+            else:
+                by_name[name] = machine
+                added += 1
+
+    save_custom(list(by_name.values()))
+
+    print()
+    print(f"Importação concluída: {added} adicionada(s), {updated} atualizada(s), "
+          f"{skipped} ignorada(s) por já existir, {errors} com erro.")
+
+
 def cmd_remove(name):
     custom = load_custom()
     new_custom = [m for m in custom if m.name != name]
@@ -345,6 +417,13 @@ def main():
         cmd_list()
     elif args[0] == "add":
         cmd_add()
+    elif args[0] == "import":
+        if len(args) < 2:
+            print("Uso: sshm import ARQUIVO.csv [--update]")
+            sys.exit(1)
+        csv_path = args[1]
+        update = "--update" in args[2:] or "-u" in args[2:]
+        cmd_import(csv_path, update=update)
     elif args[0] == "remove":
         if len(args) < 2:
             print("Uso: sshm remove NOME")

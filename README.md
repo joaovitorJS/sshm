@@ -42,6 +42,7 @@ máquinas cadastradas.
 ```bash
 sshm              # abre o menu interativo de busca e conexão
 sshm add          # cadastra uma nova máquina
+sshm import ARQUIVO.csv [--update]   # importa máquinas em lote via CSV
 sshm list         # lista todas as máquinas (ssh config + custom)
 sshm remove NOME  # remove uma máquina custom
 sshm edit         # abre o machines.json no seu editor ($EDITOR)
@@ -88,6 +89,38 @@ prioridade.
 > git, e o `.gitignore` já bloqueia qualquer `machines.json` que acabe
 > aparecendo dentro do projeto — assim você não corre o risco de commitar
 > IP/usuário/caminho de chave da sua empresa.
+
+## Importação em lote via CSV
+
+Se você já tem suas máquinas numa planilha (ou consegue exportar de algum
+inventário interno), pode importar tudo de uma vez:
+
+```bash
+sshm import maquinas.csv
+```
+
+Formato esperado (veja `examples/machines.example.csv`):
+
+```csv
+name,host,user,port,key,tags,note
+prod-web1,10.0.1.10,deploy,22,,prod;web,Servidor web principal
+prod-db1,10.0.1.20,admin,,,prod;db,
+aws-ec2-1,54.10.20.30,ec2-user,,~/.ssh/keys/aws-prod.pem,aws;ec2,Servidor AWS
+```
+
+Regras:
+- Colunas `host` e `user`, `port`, `key`, `tags`, `note` são todas opcionais,
+  **exceto `name` e `host`**, que são obrigatórias — linhas sem elas são
+  ignoradas (com aviso) e não interrompem o resto da importação.
+- Múltiplas tags no mesmo campo: separe com `;` ou `|` (ex: `prod;web`).
+- Por padrão, se uma máquina do CSV já existir (mesmo `name`), ela é
+  **ignorada** para não sobrescrever algo que você editou manualmente.
+  Use `--update` (ou `-u`) para sobrescrever:
+  ```bash
+  sshm import maquinas.csv --update
+  ```
+- No fim, o comando mostra um resumo: quantas foram adicionadas, atualizadas,
+  ignoradas por já existir e quantas deram erro.
 
 ## Chave PEM (identity file)
 

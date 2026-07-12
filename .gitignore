@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.DS_Store
+
+# nunca versione suas máquinas/segredos reais
+machines.json
