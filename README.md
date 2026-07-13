@@ -20,6 +20,7 @@ cd sshm
 ```
 
 O instalador:
+
 - verifica se você tem `python3` (3.6+), o módulo `curses` e o cliente `ssh`;
 - copia o script para `~/.local/bin/sshm` e dá permissão de execução;
 - cria `~/.config/sshm/machines.json` (se ainda não existir);
@@ -49,6 +50,7 @@ sshm edit         # abre o machines.json no seu editor ($EDITOR)
 ```
 
 No menu interativo:
+
 - Digite para filtrar por nome, host, usuário, tag ou nota.
 - `↑` / `↓` navegam pela lista filtrada.
 - `Enter` conecta via `ssh` na máquina selecionada.
@@ -109,6 +111,7 @@ aws-ec2-1,54.10.20.30,ec2-user,,~/.ssh/keys/aws-prod.pem,aws;ec2,Servidor AWS
 ```
 
 Regras:
+
 - Colunas `host` e `user`, `port`, `key`, `tags`, `note` são todas opcionais,
   **exceto `name` e `host`**, que são obrigatórias — linhas sem elas são
   ignoradas (com aviso) e não interrompem o resto da importação.
@@ -147,4 +150,7 @@ sshm/
 - Suporte a `ProxyJump` / bastion explícito no `machines.json`.
 - Copiar `scp`/`rsync` rápido para a máquina selecionada.
 - Histórico de "últimas máquinas acessadas" no topo da lista.
-- Integração com um inventário central da empresa.
+- Suporte a flags
+
+* -f -> primeiro do search
+* -s -> já entra buscando
